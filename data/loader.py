@@ -91,6 +91,7 @@ class KittiLoader():
         return drive_path
 
     def load_image_raw(self, scenes):
-	        
+        img = scipy.misc.imread(scenes)
+        return img
 
 

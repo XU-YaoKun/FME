@@ -20,8 +20,12 @@ net_arg.add_argument("--net_depth", type=int, default=12, help="number of layers
 # -----------------------------------------------------------------------------
 # Data
 data_arg = add_argument_group("Data")
-data_arg.add_argument("--data_path", type=str, default="../dataset", help="path to dataset")
+data_arg.add_argument("--dataset_dir", type=str, default="../../kitti/raw", help="path to dataset")
 data_arg.add_argument("--num_threads", type=int, default=6, help="number of thread to load data")
+data_arg.add_argument("--img_height", type=int, default=128, help="number of thread to load data")
+data_arg.add_argument("--img_width", type=int, default=418, help="number of thread to load data")
+data_arg.add_argument("--static_frames_file", type=str, default="", help="static data file path")
+data_arg.add_argument("--test_scene_file", type=str, default="", help="test data file path")
 
 # -----------------------------------------------------------------------------
 # Objective
