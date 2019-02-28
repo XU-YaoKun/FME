@@ -15,6 +15,8 @@ import cv2
 
 from config import get_config
 from loader import KittiLoader
+from joblib import Parallel, delayed
+
 
 # get argument
 config, unparsed = get_config()
@@ -24,9 +26,6 @@ data_loader = KittiLoader(config.dataset_dir,
                           config.test_scene_file,
                           img_height=config.img_height,
                           img_width=config.img_width)
-
-
-
 
 
 

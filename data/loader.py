@@ -3,6 +3,8 @@
 
 import numpy as np 
 import scipy.misc
+import os
+from glob import glob
 
 from path import Path
 from tqdm import tqdm
@@ -26,10 +28,6 @@ class KittiLoader():
                  get_pose=False):
         dir_path = Path(__file__).realpath().dirname()
 
-        if static_frames_file is not None:
-            static_frames_file = Path(static_frames_file)
-            self.collect_static_frames(static_frames_file)
-
         with open(test_scene_file, 'r') as f:
             test_scenes = f.readlines()
 
@@ -43,6 +41,11 @@ class KittiLoader():
 
         self.get_X = get_X
         self.get_pose = get_pose
+        
+
+        if static_frames_file is not None:
+            static_frames_file = Path(static_frames_file)
+            self.collect_static_frames(static_frames_file)
 
         self.collect_train_folders()
 
@@ -53,16 +56,15 @@ class KittiLoader():
         with open(static_frames_file, 'r') as f:
             frames = f.readlines()
 
-        self.static_frames = {}
+        self.static_frames = []
 
         for fr in frames:
             if fr == '\n':
                 continue
-            data, drive, frame_id = fr.split(' ')
+            date, drive, frame_id = fr.split(' ')
             curr_fid = '%.10d' % np.int(frame_id[:-1])
-            if drive not in self.static_frames.keys():
-                self.static_frames[drive] = []
-            self.static_frames[drive].append(curr_fid)
+            for cid in self.cam_ids:
+                self.static_frames.append(drive+' '+cid+' '+curr_fid)
         logging.info('Static frames has been collected from %s'%static_frames_file)
 
     
@@ -71,15 +73,23 @@ class KittiLoader():
         Get all frames in train 
         """
         self.scenes = []
-        for date in date_list:
-            drive_set = (self.dataset_dir/data).dirs()
+        for date in self.date_list:
+            drive_set = os.listdir(self.dataset_dir+date+'/') 
             for dr in drive_set:
-                if dr.name[:-5] not in self.test_scenes:
-                    self.scenes.append(dr)
+                drive_dir = os.path.join(self.dataset_dir, date, dr)
+                if os.path.isdir(drive_dir):
+                    if dr[:-5] not in self.test_scenes:
+                        for cam in self.cam_ids:
+                            img_dir = os.path.join(drive_dir, 'image_'+cam, 'data')
+                            N = len(glob(img_dir+'/*.png'))
+                            for n in range(N):
+                                frame_id = '%.10d'%n
+                                self.scenes.append(dr+' '+cam+' '+frame_id)
         
         # remove static frame from train data
         for s in self.static_frames:
             try:
+                print(s)
                 self.scenes.remove(s)
             except:
                 pass
