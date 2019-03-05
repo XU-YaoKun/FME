@@ -16,40 +16,6 @@ parser.add_argument("--img_width", type=int, default=416, help="image width")
 parser.add_argument("--num_threads", type=int, default=4, help="number of threads to use")
 args = parser.parse_args()
 
-def concat_image_seq(seq):
-    for i, im in enumerate(seq):
-        if i == 0:
-            res = im
-        else:
-            res = np.hstack((res, im))
-    return res
-
-def dump_example(n, args):
-    if n % 2000 == 0:
-        print('Progress %d/%d....' % (n, data_loader.num_train))
-    example = data_loader.get_train_example_with_idx(n)
-    if example == False:
-        return
-    image_seq = concat_image_seq(example['image_seq'])
-    intrinsics = example['intrinsics']
-    fx = intrinsics[0, 0]
-    fy = intrinsics[1, 1]
-    cx = intrinsics[0, 2]
-    cy = intrinsics[1, 2]
-    dump_dir = os.path.join(args.dump_root, example['folder_name'])
-    # if not os.path.isdir(dump_dir):
-    #     os.makedirs(dump_dir, exist_ok=True)
-    try: 
-        os.makedirs(dump_dir)
-    except OSError:
-        if not os.path.isdir(dump_dir):
-            raise
-    dump_img_file = dump_dir + '/%s.jpg' % example['file_name']
-    scipy.misc.imsave(dump_img_file, image_seq.astype(np.uint8))
-    dump_cam_file = dump_dir + '/%s_cam.txt' % example['file_name']
-    with open(dump_cam_file, 'w') as f:
-        f.write('%f,0.,%f,0.,%f,%f,0.,0.,1.' % (fx, cx, fy, cy))
-
 def main():
     if not os.path.exists(args.dump_root):
         os.makedirs(args.dump_root)

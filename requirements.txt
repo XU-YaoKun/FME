@@ -1,7 +1,9 @@
 h5py==2.7.1
 opencv-contrib-python==3.4.0.12
 tqdm==4.20.0
+opencv-python
 pickle
 numpy
 pykitti
-path
+path.py
+joblib==0.13.2
