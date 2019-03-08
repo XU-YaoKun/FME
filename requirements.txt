@@ -5,7 +5,4 @@ opencv-contrib-python==3.4.2.17
 tqdm==4.20.0
 scipy==1.2.1
 path.py==11.5.0
-tqdm==4.31.1
-pickle
-pykitti
 joblib==0.13.2
