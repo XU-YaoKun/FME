@@ -83,6 +83,9 @@ class resNetBlcok(nn.Module):
                  activation="post"):
         super(resNetBlcok, self).__init__()
 
+        self.in_channels = in_channels
+        self.mid_channels = midchannels
+
         if midchannels is None:
             midchannels = out_channels
 
@@ -99,9 +102,25 @@ class resNetBlcok(nn.Module):
 
         pos_bottle_nect = Conv2d()
 
-    def forward(self, batch_data):
+    def forward(self, x):
         
+        inchannel = x.size(1)
 
+        if inchannel != self.in_channels:
+            x_ = self.pass_layer(x)
+        
+        if midchannels != self.in_channels:
+            x = self.pre_bottle_neck(x)
+
+        for layer in self.main_conv:
+            x = layer(x)
+        
+        if midchannels != self.in_channels:
+            x = self.pos_bottle_nect(x)
+
+        return x + x_
+        
+        
 
 
 
