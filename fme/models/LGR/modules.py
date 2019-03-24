@@ -11,6 +11,7 @@ class ContextNorm(nn.Module):
     context Normalization
     """
     def __init__(self, eps):
+        super(ContextNorm, self).__init__()
         self.eps = eps
 
     def forward(self, x):
