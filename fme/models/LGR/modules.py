@@ -3,6 +3,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from fme.nn import SharedMLP, Conv2d, MLP
 
@@ -30,7 +31,6 @@ class Conv2d(nn.Module):
                  kernel_size,
                  cn=False,
                  bn=True,
-                 stride=[1,1,1,1],
                  activation="post"):
         super(Conv2d, self).__init__()
 
@@ -44,17 +44,17 @@ class Conv2d(nn.Module):
         self.batchNorm = nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.99)
 
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, bias=True)
-        self.relu = nn.Relu(inplace=True)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         assert self.activation == "post" or self.activation == "pre"
 
-        if activation == "pre":
+        if self.activation == "pre":
             x = self.normalize(x)
         
         x = self.conv(x)
 
-        if activation == "post"
+        if self.activation == "post":
             x = self.normalize(x)
 
         x = F.relu(x, inplace=True)
@@ -84,44 +84,48 @@ class resNetBlcok(nn.Module):
                  activation="post"):
         super(resNetBlcok, self).__init__()
 
-        self.in_channels = in_channels
-        self.mid_channels = midchannels
-
         if midchannels is None:
             midchannels = out_channels
 
-        # I choose not to do mid activation
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.mid_channels = midchannels
 
+        # I choose not to do mid activation
         pass_layer = Conv2d(in_channels, out_channels, [1,1])
 
-        pre_bottle_neck = Conv2d()
+        if midchannels != out_channels:
+            self.pre_bottle_neck = Conv2d(mid_channels, out_channels, [1,1])
+        
+        in_channel_list = [in_channels, out_channels]
+        out_channel_list = [out_channels, out_channels]
 
         self.main_conv = nn.ModuleList()
-        for in, out in zip(in_channels, out_channels):
-            conv = Conv2d()
+        for in_channel, out_channel in zip(in_channel_list, out_channel_list):
+            conv = Conv2d(in_channels, out_channels, 1)
             self.main_conv.append(conv)
 
-        pos_bottle_nect = Conv2d()
+        if midchannels != out_channels:
+            self.pos_bottle_nect = Conv2d(midchannels, out_channels, 1)
 
     def forward(self, x):
-        
+       
         inchannel = x.size(1)
 
         if inchannel != self.in_channels:
             x_ = self.pass_layer(x)
+        else:
+            x_ = x
         
-        if midchannels != self.in_channels:
+        if self.mid_channels != self.out_channels:
             x = self.pre_bottle_neck(x)
 
         for layer in self.main_conv:
             x = layer(x)
         
-        if midchannels != self.in_channels:
+        if self.mid_channels != self.out_channels:
             x = self.pos_bottle_nect(x)
 
         return x + x_
         
         
-
-
-

@@ -15,7 +15,7 @@ def add_argument_group(name):
 # Network
 net_arg = add_argument_group("Network")
 net_arg.add_argument("--net_depth", type=int, default=12, help="number of layers")
-
+net_arg.add_argument("--net_channel", type=int, default=128, help="number of channels in each layer")
 
 # -----------------------------------------------------------------------------
 # Data
