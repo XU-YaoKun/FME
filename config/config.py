@@ -43,8 +43,11 @@ loss_arg.add_argument("--loss_essential", type=float, default=0.1, help="weight 
 # -----------------------------------------------------------------------------
 # Training
 train_arg = add_argument_group("Train")
+train_arg.add_argument("--max_epoch", type=int, default=200, help="max epoch to train the model")
 train_arg.add_argument("--batch_size", type=int, default=32, help="batch size")
-
+train_arg.add_argument("--output_dir", type=str, default="../output", help="output file for training log")
+train_arg.add_argument("--lr", type=float, default=1e-3, help="learning rate for training")
+train_arg.add_argument("--weight_decay", type=float, default=0.0, help="weight decay for training")
 
 def get_config():
     config, unparsed = parser.parse_known_args()

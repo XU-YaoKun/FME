@@ -5,6 +5,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from config.config import get_config
+
+config, unparsed = get_config()
+
 def skew(v):
     zero = torch.zeros_like(v[:,0])
 
@@ -79,4 +83,23 @@ class LGR_loss(nn.Module):
 
         return loss
 
-        
+
+if __name__ == "__main__":
+    lgr_loss = LGR_loss(config.threshold, config.classif_weight, config.essential_weight)
+
+    data_batch = {}
+
+    x_in = torch.rand()
+    y_in = torch.rand()
+    ts = torch.rand()
+    Rs = torch.rand()
+
+    preds = {}
+
+    essential = torch.rand()
+    logits = torch.rand()
+
+    loss = lgr_loss(data_batch, preds)
+
+    print("#"*25, " loss value ", "#"*25)
+    print(loss)

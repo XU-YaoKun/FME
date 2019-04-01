@@ -42,10 +42,13 @@ dataset = CorrespondenceSet(config.dataset_dir,
                             1000,
                             config.static_frames_file,
                             config.test_scene_file,
+							mode="train",
                             img_height=config.img_height,
                             img_width=config.img_width)
 
-dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True,num_workers=config.num_workers)
+train_dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
+
+test_dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
 for it in data_loader.drives:
     print(it)

@@ -46,6 +46,12 @@ class CorrespondenceSet(Dataset):
         # print(type(test_scene_file))
         with open(test_scene_file, 'r') as f:
             test_scenes = f.readlines()
+        
+        # dataloader output
+        self.ts = []
+        self.Rs = []
+        self.xs = []
+        self.ys = []
 
         self.test_scenes = [t[:-1] for t in test_scenes]
         self.dataset_dir = Path(dataset_dir)
@@ -83,6 +89,11 @@ class CorrespondenceSet(Dataset):
         out_dict["correspondence"] = self.correspondence[index]
         out_dict["F"] = self.F[index]
         out_dict["description"] = self.description[index]
+
+        # out_dict["Rs"] = self.Rs[index]
+        # out_dict["ts"] = self.ts[index]
+        # out_dict["xs"] = self.xs[index]
+        # out_dict["ys"] = self.ys[index]
 
         return out_dict
 
