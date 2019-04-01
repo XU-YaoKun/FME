@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from modules import Conv2d, resNetBlcok
+from .modules import Conv1d, resNetBlcok
 from config import get_config
 
 class weightNet(nn.Module):
@@ -40,7 +40,7 @@ class weightNet(nn.Module):
         self.out_channels = out_channels
         self.ksize = ksize
 
-        self.first_conv = Conv2d(self.in_channels, self.out_channels, self.ksize)
+        self.first_conv = Conv1d(self.in_channels, self.out_channels, self.ksize)
 
         self.resnet_block_list = nn.ModuleList()
         in_channel = self.out_channels
@@ -50,7 +50,7 @@ class weightNet(nn.Module):
             in_channel = _nchannel
 
         # output layer
-        self.final_conv = Conv2d(in_channel, 1, 1)
+        self.final_conv = Conv1d(in_channel, 1, 1)
         
 
 

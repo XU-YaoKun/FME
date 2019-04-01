@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from fme.nn import SharedMLP, Conv2d, MLP
+from fme.nn import SharedMLP, Conv1d, MLP
 
 class ContextNorm(nn.Module):
     """
@@ -20,7 +20,7 @@ class ContextNorm(nn.Module):
         return x
 
 
-class Conv2d(nn.Module):
+class Conv1d(nn.Module):
     """
     customized layer for conv1d
     input: BxHxWxin_channel
@@ -32,7 +32,7 @@ class Conv2d(nn.Module):
                  cn=False,
                  bn=True,
                  activation="post"):
-        super(Conv2d, self).__init__()
+        super(Conv1d, self).__init__()
 
         assert activation == "post" or activation == "pre"
 
@@ -43,7 +43,7 @@ class Conv2d(nn.Module):
         self.contextNorm = ContextNorm(eps=1e-3)
         self.batchNorm = nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.99)
 
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, bias=True)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, bias=True)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -92,21 +92,21 @@ class resNetBlcok(nn.Module):
         self.mid_channels = midchannels
 
         # I choose not to do mid activation
-        pass_layer = Conv2d(in_channels, out_channels, [1,1])
+        pass_layer = Conv1d(in_channels, out_channels, [1,1])
 
         if midchannels != out_channels:
-            self.pre_bottle_neck = Conv2d(mid_channels, out_channels, [1,1])
+            self.pre_bottle_neck = Conv1d(mid_channels, out_channels, [1,1])
         
         in_channel_list = [in_channels, out_channels]
         out_channel_list = [out_channels, out_channels]
 
         self.main_conv = nn.ModuleList()
         for in_channel, out_channel in zip(in_channel_list, out_channel_list):
-            conv = Conv2d(in_channels, out_channels, 1)
+            conv = Conv1d(in_channels, out_channels, 1)
             self.main_conv.append(conv)
 
         if midchannels != out_channels:
-            self.pos_bottle_nect = Conv2d(midchannels, out_channels, 1)
+            self.pos_bottle_nect = Conv1d(midchannels, out_channels, 1)
 
     def forward(self, x):
        
