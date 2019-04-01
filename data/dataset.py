@@ -9,7 +9,7 @@ sys.path.append(ROOT_DIR)
 
 import numpy as np 
 import scipy.misc
-import os
+import pickle
 import cv2
 from glob import glob
 
@@ -20,6 +20,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from torch.utils.data import Dataset
+from geom import get_episym 
 
 # for test
 from config import get_config
@@ -78,7 +79,23 @@ class CorrespondenceSet(Dataset):
 
         # get correspondenve and camera calibration matrix
         self.get_correspondence()
+        
+        xs_out = open("xs.pickle", "wb")
+        pickle.dump(self.xs, xs_out)
+        xs_out.close()
+        
+        ys_out = open("ys.pickle", "wb")
+        pickle.dump(self.xs, ys_out)
+        ys_out.close()
 
+        Rs_out = open("Rs.pickle", "wb")
+        pickle.dump(self.Rs, Rs_out)
+        Rs_out.close()
+
+        ts_out = open("ts.pickle", "wb")
+        pickle.dump(self.ts, ts_out)
+        ts_out.close()
+    
     def __len__(self):
         return len(self.correspondence)
 
@@ -185,7 +202,14 @@ class CorrespondenceSet(Dataset):
                 xy2 = np.array([_kp.pt for _kp in kp2])
 
                 # find correspondence according to description
-                x1, x2 = knn_match(xy1, xy2, des1, des2)
+                x1, x2 = self.knn_match(xy1, xy2, des1, des2, if_BF=False)
+                
+                # print("#"*25, " x1 ", "#"*25)
+                # print(x1)
+                # print("#"*25, " x2 ", "#"*25)
+                # print(x2)
+                
+                xs = np.concatenate((x1, x2), axis=1)
 
                 imu2rect = self.get_camera_pose(drive1)
     
@@ -206,17 +230,22 @@ class CorrespondenceSet(Dataset):
                 
                 rotation = odo_pose_inv[:3, :3]
                 translation = odo_pose_inv[:3, 3:4]
-
+                
+                # calculate ys
+                geod_d = get_episym(x1, x2, rotation, translation)
+                ys = geod_d
+                
                 # print(des1)
                 self.Rs.append(rotation)
                 self.ts.append(translation)
-                
-                np.set_printoptions(precision=4, suppress=True)
-                print("\n")
-                print(odo_pose_inv)
+                self.xs.append(xs)
+                self.ys.append(ys)
+                # np.set_printoptions(precision=4, suppress=True)
+                # print("\n")
+                # print(odo_pose_inv)
                 count = count + 1
     
-    def knn_match(x1_all, x2_all, des1, des2, if_BF):
+    def knn_match(self, x1_all, x2_all, des1, des2, if_BF=False):
         """
         compute correspondence according to knn algorithm
         """
@@ -241,10 +270,10 @@ class CorrespondenceSet(Dataset):
                 good.append(m)
         
         x1 = x1_all[[mat.queryIdx for mat in good], :]
-        x2 = x2_all[[mat.queryIdx for mat in good], :]
-        assert x1.shape = x2.shape
+        x2 = x2_all[[mat.trainIdx for mat in good], :]
+        assert x1.shape == x2.shape
 
-        print("# good points: {}".format(len(good)))
+        # print("# good points: {}".format(len(good)))
 
         return x1, x2
     
