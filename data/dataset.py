@@ -208,8 +208,9 @@ class CorrespondenceSet(Dataset):
                 self.correspondence.append([xy1, xy2])
                 self.description.append([des1, des2])
                 
-                #np.set_printoptions(precision=4, suppress=True)
-                #print(odo_pose_inv)
+                np.set_printoptions(precision=4, suppress=True)
+                print("\n")
+                print(odo_pose_inv)
                 count = count + 1
     
     def to_homo(self, R, T):
