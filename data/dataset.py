@@ -52,7 +52,7 @@ class CorrespondenceSet(Dataset):
         self.img_height = img_height
         self.img_width = img_width
         self.correspondence = []
-        self.Rt = []
+        self.F = []
         self.description = []
         self.nfeature = nfeature
 
@@ -193,12 +193,12 @@ class CorrespondenceSet(Dataset):
                 odo_pose_inv = np.linalg.inv(odo_pose)
                 
                 # print(des1)
-                self.Rt.append(odo_pose_inv)
+                self.F.append(odo_pose_inv)
                 self.correspondence.append([xy1, xy2])
                 self.description.append([des1, des2])
                 
-                # np.set_printoptions(precision=4, suppress=True)
-                # print(odo_pose_inv)
+                #np.set_printoptions(precision=4, suppress=True)
+                #print(odo_pose_inv)
                 count = count + 1
     
     def to_homo(self, R, T):
