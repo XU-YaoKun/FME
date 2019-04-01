@@ -211,8 +211,8 @@ class CorrespondenceSet(Dataset):
                 self.Rs.append(rotation)
                 self.ts.append(translation)
                 
-                # np.set_printoptions(precision=4, suppress=True)
-                # print(odo_pose_inv)
+                #np.set_printoptions(precision=4, suppress=True)
+                #print(odo_pose_inv)
                 count = count + 1
     
     def knn_match(x1_all, x2_all, des1, des2, if_BF):
