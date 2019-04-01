@@ -58,7 +58,6 @@ class CorrespondenceSet(Dataset):
         self.img_height = img_height
         self.img_width = img_width
         self.correspondence = []
-        self.Rt = []
         self.description = []
         self.nfeature = nfeature
 
@@ -87,13 +86,12 @@ class CorrespondenceSet(Dataset):
         out_dict = {}
 
         out_dict["correspondence"] = self.correspondence[index]
-        out_dict["F"] = self.F[index]
         out_dict["description"] = self.description[index]
 
-        # out_dict["Rs"] = self.Rs[index]
-        # out_dict["ts"] = self.ts[index]
-        # out_dict["xs"] = self.xs[index]
-        # out_dict["ys"] = self.ys[index]
+        out_dict["Rs"] = self.Rs[index]
+        out_dict["ts"] = self.ts[index]
+        out_dict["xs"] = self.xs[index]
+        out_dict["ys"] = self.ys[index]
 
         return out_dict
 
@@ -186,6 +184,9 @@ class CorrespondenceSet(Dataset):
                 xy1 = np.array([_kp.pt for _kp in kp1])
                 xy2 = np.array([_kp.pt for _kp in kp2])
 
+                # find correspondence according to description
+                x1, x2 = knn_match(xy1, xy2, des1, des2)
+
                 imu2rect = self.get_camera_pose(drive1)
     
                 oxt_path1 = self.get_oxt_path(it1) 
@@ -203,14 +204,48 @@ class CorrespondenceSet(Dataset):
                 odo_pose = imu2rect @ np.linalg.inv(imu_pose1) @ imu_pose2 @ np.linalg.inv(imu2rect)
                 odo_pose_inv = np.linalg.inv(odo_pose)
                 
+                rotation = odo_pose_inv[:3, :3]
+                translation = odo_pose_inv[:3, 3:4]
+
                 # print(des1)
-                self.Rt.append(odo_pose_inv)
-                self.correspondence.append([xy1, xy2])
-                self.description.append([des1, des2])
+                self.Rs.append(rotation)
+                self.ts.append(translation)
                 
                 # np.set_printoptions(precision=4, suppress=True)
                 # print(odo_pose_inv)
                 count = count + 1
+    
+    def knn_match(x1_all, x2_all, des1, des2, if_BF):
+        """
+        compute correspondence according to knn algorithm
+        """
+
+        if if_BF:
+            bf = cv2.BFMatcher(normType=cv2.NORM_L2)
+            matches = bf.knnMatch(des1, des2, k=2)
+        else:
+            FLANN_INDEX_KDTREE = 0
+            index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+            search_params = dict(checks=50)
+
+            flann = cv2.FlannBasedMatcher(index_params, search_params)
+            matches = flann.knnMatch(des1, des2, k=2)
+
+        good = []
+        all_m = []
+
+        for m,n in matches:
+            all_m.append(m)
+            if m.distance < 0.7*n.distance:
+                good.append(m)
+        
+        x1 = x1_all[[mat.queryIdx for mat in good], :]
+        x2 = x2_all[[mat.queryIdx for mat in good], :]
+        assert x1.shape = x2.shape
+
+        print("# good points: {}".format(len(good)))
+
+        return x1, x2
     
     def to_homo(self, R, T):
         """
