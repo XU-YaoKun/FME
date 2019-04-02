@@ -37,8 +37,9 @@ obj_arg.add_argument("--top_k", type=int, default=2000, help="number of keypoint
 # -----------------------------------------------------------------------------
 # Loss
 loss_arg = add_argument_group("Loss")
-loss_arg.add_argument("--loss_classif", type=float, default=1.0, help="weight for classification loss")
-loss_arg.add_argument("--loss_essential", type=float, default=0.1, help="weight for essential matrix loss")
+loss_arg.add_argument("--classif_weight", type=float, default=1.0, help="weight for classification loss")
+loss_arg.add_argument("--essential_weight", type=float, default=0.1, help="weight for essential matrix loss")
+loss_arg.add_argument("--threshold", type=float, default=1e-4, help="threshold for determining good correspondence")
 
 # -----------------------------------------------------------------------------
 # Training

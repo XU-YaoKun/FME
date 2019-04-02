@@ -1,6 +1,12 @@
 # NAME: loss.py
 # DESCRIPTION: loss function for Learn Good Correspondence
 
+import os
+import sys
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+sys.path.append(ROOT_DIR)
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,9 +22,24 @@ def skew(v):
         zero, -v[:,2], v[:,1],
         v[:,2], zero, -v[:,0],
         -v[:,1], v[:,0], zero,
-    ])
+    ], dim=1)
 
     return M
+
+def print_tensor(x_in, y_in, Rs, ts):
+        
+        print("#"*25, " x_in ", "#"*25)
+        print(x_in)
+        
+        print("#"*25, " y_in ", "#"*25)
+        print(y_in)
+
+        print("#"*25, " Rs ", "#"*25)
+        print(Rs)
+
+        print("#"*25, " ts ", "#"*25)
+        print(ts)
+
 
 class LGR_loss(nn.Module):
     """
@@ -39,47 +60,48 @@ class LGR_loss(nn.Module):
 
         essential = preds["essential"]
         logits = preds["logits"]
-
+        
+        # print_tensor(x_in, y_in, R_in, t_in)
         batch_size = x_in.size(0)
-        num_point = x_in.size(1)
-
+        num_point = x_in.size(3)
+        
         # prepare for classification loss
-        geometric_distance = y_in[:,:,0]
+        geometric_distance = y_in[:,0,:]
 
         # prepare for essential matrix loss
         translate = skew(t_in).view(batch_size, 3, 3)
         rotation = R_in.view(batch_size, 3, 3)
         truth_essential = torch.matmul(translate, rotation).view(batch_size, 9)
-        truth_essential /= torch.norm(truth_essential, axis=1, keepdims=True)
-        
-        # essential matrix loss
-        essential_loss = torch.reduce_mean(torch.minimum(
-            torch.reduce_sum(torch.square(essential - truth_essential)),
-            torch.reduce_sum(torch.square(essential + truth_essential)),
-        ))
+        truth_essential /= torch.norm(truth_essential, dim=1, keepdim=True)
 
+        # essential matrix loss
+        essential_loss = torch.mean(torch.min(
+            torch.sum(torch.pow(essential - truth_essential, 2), dim=1),
+            torch.sum(torch.pow(essential + truth_essential, 2), dim=1),
+        ))
         # classification loss
-        pos = torch.to_float(geometric_distance < self.threshold)
-        neg = torch.to_float(geometric_distance > self.threshold)
+        pos = (geometric_distance < self.threshold).float()
+        neg = (geometric_distance > self.threshold).float()
         c = pos - neg
-        classification_loss = -torch.log(nn.sigmod(c * logits))
+        classification_loss = -torch.log(torch.sigmoid(c * logits))
+        
 
         # balance
-        num_pos = torch.sum(pos, 1)
-        num_neg = torch.sum(neg, 1)
+        num_pos = torch.sum(pos, dim=1)
+        num_neg = torch.sum(neg, dim=1)
 
-        classification_loss_p = torch.sum(classification_loss * pos, 1)
-        classification_loss_n = torch.sum(classification_loss * neg, 1)
+        classification_loss_p = torch.sum(classification_loss * pos, dim=1)
+        classification_loss_n = torch.sum(classification_loss * neg, dim=1)
 
         classification_loss_balance = torch.sum(classification_loss_p * 0.5 / num_pos + classification_loss_n * 0.5 / num_neg)
 
-        precision = (torch.sum((logits > 0).float() * pos, 1) / torch.sum((logits < 0).float * neg, 1)).mean()
-        recall = (torch.sum((logits > 0).float * pos, 1) / num_pos).mean() 
+        precision = (torch.sum((logits > 0).float() * pos, dim=1) / torch.sum((logits < 0).float() * neg, dim=1)).mean()
+        recall = (torch.sum((logits > 0).float() * pos, dim=1) / num_pos).mean() 
 
         # not add l2 loss now, but maybe needed in the future
 
         # add classification loss and essential matrix loss [and l2 loss]
-        loss = self.classif_weight * classification_loss + self.essential_weight * essential_loss
+        loss = self.classif_weight * classification_loss_balance + self.essential_weight * essential_loss
 
         return loss
 
@@ -87,17 +109,19 @@ class LGR_loss(nn.Module):
 if __name__ == "__main__":
     lgr_loss = LGR_loss(config.threshold, config.classif_weight, config.essential_weight)
 
-    data_batch = {}
 
-    x_in = torch.rand()
-    y_in = torch.rand()
-    ts = torch.rand()
-    Rs = torch.rand()
+    x_in = torch.rand(16, 4, 1, 128)
+    y_in = torch.rand(16, 2, 128) / 7000 
+    ts = torch.rand(16, 3)
+    Rs = torch.rand(16, 9)
 
-    preds = {}
+    data_batch = {"x_in":x_in, "y_in":y_in, "R": Rs, "t":ts}
+    
 
-    essential = torch.rand()
-    logits = torch.rand()
+    essential = torch.rand(16, 9)
+    logits = torch.rand(16, 128)
+
+    preds = {"essential":essential, "logits":logits}
 
     loss = lgr_loss(data_batch, preds)
 
