@@ -8,6 +8,7 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(ROOT_DIR)
 
 import numpy as np 
+np.set_printoptions(precision=4, suppress=True)
 import scipy.misc
 import pickle
 import cv2
@@ -20,7 +21,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from torch.utils.data import Dataset
-from geom import get_episym 
+from .geom import get_episym 
 
 # for test
 from config import get_config
@@ -35,7 +36,7 @@ class CorrespondenceSet(Dataset):
 
     def __init__(self, 
                  dataset_dir,
-                 nfeature=1000,
+                 nfeature=config.num_kp,
                  static_frames_file=None,
                  test_scene_file=None,
                  img_height=128,
@@ -58,8 +59,6 @@ class CorrespondenceSet(Dataset):
         self.dataset_dir = Path(dataset_dir)
         self.img_height = img_height
         self.img_width = img_width
-        self.correspondence = []
-        self.description = []
         self.nfeature = nfeature
 
         self.cam_ids = ['02']
@@ -97,13 +96,10 @@ class CorrespondenceSet(Dataset):
         ts_out.close()
     
     def __len__(self):
-        return len(self.correspondence)
+        return len(self.xs)
 
     def __getitem__(self, index):
         out_dict = {}
-
-        out_dict["correspondence"] = self.correspondence[index]
-        out_dict["description"] = self.description[index]
 
         out_dict["Rs"] = self.Rs[index]
         out_dict["ts"] = self.ts[index]
@@ -170,7 +166,7 @@ class CorrespondenceSet(Dataset):
     
     def get_correspondence(self):
         """
-        Find all correspondence in a drive directory
+        Find all in a drive directory
         """
         
         # init sift
@@ -180,8 +176,9 @@ class CorrespondenceSet(Dataset):
         index = 0;
 
         pair = []
-        al = len(self.d_scenes)
-        
+        # al = len(self.d_scenes)
+        al = 22382 
+
         scale = None
 
         for it1, it2 in zip(self.d_scenes[0::2],self.d_scenes[1::2]):
@@ -195,15 +192,17 @@ class CorrespondenceSet(Dataset):
                 
                 img1 = cv2.cvtColor(cv2.imread(path1),cv2.COLOR_BGR2GRAY)
                 img2 = cv2.cvtColor(cv2.imread(path2),cv2.COLOR_BGR2GRAY)
-                
+
+                # height, width = img1.shape
+                # print("height is {}, width is {}".format(height, width))
+
                 kp1, des1 = sift.detectAndCompute(img1, None)
                 kp2, des2 = sift.detectAndCompute(img2, None)
                 xy1 = np.array([_kp.pt for _kp in kp1])
                 xy2 = np.array([_kp.pt for _kp in kp2])
-
+    
                 # find correspondence according to description
-                x1, x2 = self.knn_match(xy1, xy2, des1, des2, if_BF=False)
-                
+                x1, x2 = self.knn_match(xy1, xy2, des1, des2, if_BF=True)
                 # print("#"*25, " x1 ", "#"*25)
                 # print(x1)
                 # print("#"*25, " x2 ", "#"*25)
@@ -211,8 +210,10 @@ class CorrespondenceSet(Dataset):
                 
                 xs = np.concatenate((x1, x2), axis=1)
 
-                imu2rect = self.get_camera_pose(drive1)
-    
+                K, imu2rect = self.get_camera_pose(drive1)
+                # print("camera intrinsic matrix")
+                # print(K)
+
                 oxt_path1 = self.get_oxt_path(it1) 
                 oxt_path2 = self.get_oxt_path(it2)
                 metadata1 = np.genfromtxt(oxt_path1)
@@ -228,19 +229,24 @@ class CorrespondenceSet(Dataset):
                 odo_pose = imu2rect @ np.linalg.inv(imu_pose1) @ imu_pose2 @ np.linalg.inv(imu2rect)
                 odo_pose_inv = np.linalg.inv(odo_pose)
                 
-                rotation = odo_pose_inv[:3, :3]
-                translation = odo_pose_inv[:3, 3:4]
+                Rt = odo_pose
+
+                rotation = Rt[:3, :3]
+                translation = Rt[:3, 3:4]
                 
+                # print("odo_pose")
+                # print(rotation)
+                # print(translation)
                 # calculate ys
-                geod_d = get_episym(x1, x2, rotation, translation)
+                geod_d = get_episym(x1, x2, rotation, translation, K)
                 ys = geod_d
-                
+                # print("\nnum of good cor {}\n".format(np.count_nonzero(ys<1e-4)))
+
                 # print(des1)
                 self.Rs.append(rotation)
                 self.ts.append(translation)
                 self.xs.append(xs)
                 self.ys.append(ys)
-                # np.set_printoptions(precision=4, suppress=True)
                 # print("\n")
                 # print(odo_pose_inv)
                 count = count + 1
@@ -259,18 +265,21 @@ class CorrespondenceSet(Dataset):
             search_params = dict(checks=50)
 
             flann = cv2.FlannBasedMatcher(index_params, search_params)
-            matches = flann.knnMatch(des1, des2, k=2)
+            matches = flann.knnMatch(des1, des2, k=1)
 
-        good = []
-        all_m = []
+        # good = []
+        # all_m = []
 
-        for m,n in matches:
-            all_m.append(m)
-            if m.distance < 0.7*n.distance:
-                good.append(m)
+        # for m,n in matches:
+        #     all_m.append(m)
+        #     if m.distance < 0.7*n.distance:
+        #         good.append(m)
         
-        x1 = x1_all[[mat.queryIdx for mat in good], :]
-        x2 = x2_all[[mat.trainIdx for mat in good], :]
+        x1 = x1_all[[mat[0].queryIdx for mat in matches], :]
+        x2 = x2_all[[mat[0].trainIdx for mat in matches], :]
+        # print("\n")
+        # print("shape of x1: {}".format(x1.shape))
+        # print("shape of x2: {}".format(x2.shape))
         assert x1.shape == x2.shape
 
         # print("# good points: {}".format(len(good)))
@@ -307,7 +316,7 @@ class CorrespondenceSet(Dataset):
         # from imu coordinate to rectified camera coordinate
         imu2rect = Rtl_gt @ cam2rect_mat @ velo2cam_mat @ imu2velo_mat
         
-        return imu2rect
+        return K, imu2rect
 
 
     def read_calib_file(self, path):

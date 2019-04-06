@@ -14,7 +14,7 @@ import cv2
 
 import scipy.misc
 from config import get_config
-from dataset import CorrespondenceSet 
+from .dataset import CorrespondenceSet 
 from joblib import Parallel, delayed
 
 from torch.utils.data import DataLoader
@@ -39,19 +39,18 @@ config, unparsed = get_config()
 print(config.test_scene_file)
 
 dataset = CorrespondenceSet(config.dataset_dir,
-                            1000,
+                            config.num_kp,
                             config.static_frames_file,
                             config.test_scene_file,
-							mode="train",
                             img_height=config.img_height,
                             img_width=config.img_width)
 
 train_dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
+print("\n")
+# test_dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
 
-test_dataloader = DataLoader(dataset, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
-
-for it in data_loader.drives:
-    print(it)
+# for it in data_loader.drives:
+#     print(it)
 
 
 

@@ -15,19 +15,20 @@ def skew_matrix(v):
     return M
 
 
-def get_episym(x1, x2, dR, dt):
+def get_episym(x1, x2, dR, dt, K):
     # calculate symetric distance for fundamental matrix
     num_point = len(x1)
 
     # Create homogeneous coordinate 
     x1 = np.concatenate([x1, np.ones((num_point, 1))], axis=-1).reshape(-1, 3, 1)
     x2 = np.concatenate([x2, np.ones((num_point, 1))], axis=-1).reshape(-1, 3, 1)
-
+    
     # Compute fundamental matrix
     dR = dR.reshape(1,3,3)
     dt = dt.reshape(1,3)
-
-    F = np.repeat(np.matmul(np.reshape(skew_matrix(dt), (-1, 3, 3)), dR).reshape(-1, 3, 3), num_point, axis=0)
+    
+    F = np.repeat(np.transpose(np.linalg.inv(K))@np.reshape(skew_matrix(dt), (-1, 3, 3))@dR.reshape(-1, 3, 3)@np.linalg.inv(K), num_point, axis=0)
+    # print("\nFundamental matrix is \n{}\n".format(F))
 
     x2Fx1 = np.matmul(x2.transpose(0, 2, 1), np.matmul(F, x1)).flatten()
     Fx1 = np.matmul(F, x1).reshape(-1, 3)

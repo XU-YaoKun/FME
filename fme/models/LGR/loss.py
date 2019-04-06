@@ -57,7 +57,8 @@ class LGR_loss(nn.Module):
         y_in = databatch["y_in"]
         R_in = databatch["R"]
         t_in = databatch["t"]
-
+        
+        # print("size of y_in ", y_in.size())
         essential = preds["essential"]
         logits = preds["logits"]
         

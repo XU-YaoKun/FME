@@ -43,8 +43,7 @@ class Conv1d(nn.Module):
         self.contextNorm = ContextNorm(eps=1e-3)
         self.batchNorm = nn.BatchNorm2d(out_channels, eps=1e-3, momentum=0.99)
 
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, bias=True)
-        self.relu = nn.ReLU(inplace=True)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, bias=True)
 
     def forward(self, x):
         assert self.activation == "post" or self.activation == "pre"
@@ -57,7 +56,7 @@ class Conv1d(nn.Module):
         if self.activation == "post":
             x = self.normalize(x)
 
-        x = F.relu(x, inplace=True)
+        x = F.relu(x, inplace=False)
 
         return x
 

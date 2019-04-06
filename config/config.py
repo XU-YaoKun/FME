@@ -15,7 +15,7 @@ def add_argument_group(name):
 # Network
 net_arg = add_argument_group("Network")
 net_arg.add_argument("--net_depth", type=int, default=12, help="number of layers")
-net_arg.add_argument("--net_channel", type=int, default=128, help="number of channels in each layer")
+net_arg.add_argument("--net_channel", type=int, default=1000, help="number of channels in each layer")
 
 # -----------------------------------------------------------------------------
 # Data
@@ -31,8 +31,8 @@ data_arg.add_argument("--num_workers", type=int, default=4, help="number of work
 # -----------------------------------------------------------------------------
 # Objective
 obj_arg = add_argument_group("Object")
-obj_arg.add_argument("--num_kp", type=int, default=2000, help="number of keypoints per image")
-obj_arg.add_argument("--top_k", type=int, default=2000, help="number of keypoint to use for estimation")
+obj_arg.add_argument("--num_kp", type=int, default=1000, help="number of keypoints per image")
+obj_arg.add_argument("--top_k", type=int, default=1000, help="number of keypoint to use for estimation")
 
 # -----------------------------------------------------------------------------
 # Loss
@@ -49,6 +49,7 @@ train_arg.add_argument("--batch_size", type=int, default=32, help="batch size")
 train_arg.add_argument("--output_dir", type=str, default="../output", help="output file for training log")
 train_arg.add_argument("--lr", type=float, default=1e-3, help="learning rate for training")
 train_arg.add_argument("--weight_decay", type=float, default=0.0, help="weight decay for training")
+train_arg.add_argument("--log_period", type=int, default=10, help="iteration period to print log")
 
 def get_config():
     config, unparsed = parser.parse_known_args()

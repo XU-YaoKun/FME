@@ -56,7 +56,8 @@ class weightNet(nn.Module):
 
     def forward(self, x_in):
         x = x_in
-
+        
+        # print(x.size())
         x = self.first_conv(x)
         for block in self.resnet_block_list:
             x = block(x)
@@ -83,7 +84,7 @@ class LGR(nn.Module):
 
     def forward(self, data_batch):
 
-        x_in = data_batch["correspondence"]
+        x_in = data_batch["x_in"]
 
         batch_size = x_in.size(0)
         num_point = x_in.size(3)
@@ -95,7 +96,7 @@ class LGR(nn.Module):
         xx = x_in.squeeze(2).transpose(1,2)
         X = torch.stack([xx[:,:,2]*xx[:,:,0], xx[:,:,2]*xx[:,:,1], xx[:,:,2],
                         xx[:,:,3]*xx[:,:,0], xx[:,:,3]*xx[:,:,1], xx[:,:,3],
-                        xx[:,:,0], xx[:,:,1], torch.ones(batch_size, num_point)], dim=1)
+                        xx[:,:,0], xx[:,:,1], torch.ones(batch_size, num_point, device=x_in.device)], dim=1)
 
         # construct eight point algorithm to solve the essential matrix
         X = X.transpose(1,2)
@@ -103,19 +104,23 @@ class LGR(nn.Module):
         XwX = torch.matmul(X.transpose(1,2), wX)
 
         # get the smallest eigenvalue and corresbonding eigenvector
-        v = torch.tensor([])
+        # v = torch.tensor([], device=x_in.device)
 
-        for i in range(batch_size):
-            m = XwX[i,:,:]
-            print(m)
-            eigenvalue, eigenvector = torch.eig(m, eigenvectors=True)
-            m_index = torch.argmin(eigenvalue[:,0])
-            v = torch.cat((v, eigenvector[:,m_index].unsqueeze(0)), 0)
+        # for i in range(batch_size):
+        #    m = XwX[i,:,:]
+        #    eigenvalue, eigenvector = torch.eig(m, eigenvectors=True)
+        #    m_index = torch.argmin(eigenvalue[:,0])
+        #    v = torch.cat((v, eigenvector[:,m_index].unsqueeze(0).cuda()), 0)
+        v = torch.rand(batch_size, 9, device=x_in.device)
 
         essential = v
         essential /= torch.norm(essential, dim=1, keepdim=True)
+        
+        preds = {}
+        preds["logits"] = logits
+        preds["essential"] = essential
 
-        return essential
+        return preds
 
 if __name__ == "__main__":
     data_batch = {}
@@ -125,7 +130,7 @@ if __name__ == "__main__":
     weight_net = LGR(config)
     print("Build model:\n{}".format(str(weight_net)))
    
-    data_batch["correspondence"] = x_in
+    data_batch["x_in"] = x_in
     weight = weight_net(data_batch)
     print("#"*50)
     print(weight)
